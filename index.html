@@ -1,56 +1,137 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aplikasi Penjurian Kompetisi</title>
+  <title>JuriPRO — Sistem Penjurian Kompetisi Modern</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
   <style>
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+    /* Custom Modern Range Slider */
+    input[type="range"].modern-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 9999px;
+      background: #e2e8f0;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].modern-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 9999px;
+      background: #4f46e5;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.45);
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+    input[type="range"].modern-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #4338ca;
+    }
+    input[type="range"].modern-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 9999px;
+      background: #4f46e5;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.45);
+      transition: transform 0.15s ease;
+    }
+
+    /* Hide scrollbar for horizontal nav */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-indigo-100 selection:text-indigo-800">
 
-  <!-- Header -->
-  <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-      <div>
-        <h1 id="headerTitle" class="text-lg sm:text-xl font-bold tracking-tight">Penjurian Kompetisi</h1>
-        <p class="text-xs text-indigo-200 flex items-center gap-1.5">
-          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span id="saveStatus">Tersimpan otomatis di browser</span>
-        </p>
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-[calc(100%-2.5rem)] pointer-events-none"></div>
+
+  <!-- Sticky Glassmorphic Header -->
+  <header class="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-slate-200/80">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 shrink-0">
+          <i data-lucide="award" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-base sm:text-lg font-extrabold tracking-tight bg-gradient-to-r from-indigo-700 to-violet-600 bg-clip-text text-transparent">JuriPRO</span>
+            <span id="headerJudgeBadge" class="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200/80"></span>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-500">
+            <span id="headerCompName" class="font-medium text-slate-700 truncate max-w-[160px] sm:max-w-xs"></span>
+            <span class="text-slate-300">&bull;</span>
+            <span class="inline-flex items-center gap-1 text-emerald-600 font-medium">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span id="saveStatus">Tersimpan</span>
+            </span>
+          </div>
+        </div>
       </div>
-      <div class="flex items-center gap-2 text-xs">
-        <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition font-medium" title="Simpan cadangan data (.json)">
-          Backup
+
+      <!-- Quick Actions -->
+      <div class="flex items-center gap-1.5">
+        <button onclick="App.exportBackup()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 px-2.5 py-2 rounded-lg transition" title="Simpan cadangan penuh (.json)">
+          <i data-lucide="hard-drive-download" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Backup</span>
         </button>
-        <label class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition font-medium cursor-pointer" title="Muat cadangan data (.json)">
-          Restore
-          <input type="file" accept=".json" onchange="importBackup(event)" class="hidden" />
+        <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 px-2.5 py-2 rounded-lg transition cursor-pointer" title="Muat cadangan penuh (.json)">
+          <i data-lucide="hard-drive-upload" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Restore</span>
+          <input type="file" accept=".json" onchange="App.importBackup(event)" class="hidden" />
         </label>
-        <button onclick="resetAllData()" class="bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-lg transition font-medium">
-          Reset
+        <button onclick="App.resetAllData()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 px-2.5 py-2 rounded-lg transition" title="Reset semua data">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Reset</span>
         </button>
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <nav class="bg-indigo-800/80 border-t border-indigo-600/50">
-      <div class="max-w-5xl mx-auto px-4 flex gap-1 overflow-x-auto">
-        <button onclick="switchTab('setup')" id="tab-setup" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 transition whitespace-nowrap">
-          1. Pengaturan & Aspek
+    <!-- Modern Pill Navigation -->
+    <div class="max-w-5xl mx-auto px-4 pb-3">
+      <nav class="flex gap-1.5 bg-slate-100/90 p-1 rounded-xl overflow-x-auto no-scrollbar border border-slate-200/60">
+        <button onclick="App.switchTab('setup')" id="tab-setup" class="tab-btn flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+          <span>1. Pengaturan & Aspek</span>
         </button>
-        <button onclick="switchTab('scoring')" id="tab-scoring" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 transition whitespace-nowrap">
-          2. Peserta & Penilaian
+        <button onclick="App.switchTab('scoring')" id="tab-scoring" class="tab-btn flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap">
+          <i data-lucide="clipboard-check" class="w-4 h-4"></i>
+          <span>2. Peserta & Penilaian</span>
         </button>
-        <button onclick="switchTab('ranking')" id="tab-ranking" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 transition whitespace-nowrap">
-          3. Klasemen & Juara
+        <button onclick="App.switchTab('ranking')" id="tab-ranking" class="tab-btn flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap">
+          <i data-lucide="trophy" class="w-4 h-4"></i>
+          <span>3. Klasemen & Multi-Juri</span>
         </button>
-      </div>
-    </nav>
+      </nav>
+    </div>
   </header>
 
   <!-- Main Content -->
@@ -58,62 +139,108 @@
 
     <!-- TAB 1: PENGATURAN & ASPEK -->
     <section id="view-setup" class="space-y-6">
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
-        <h2 class="text-base font-bold text-slate-800 border-b pb-2">Informasi Kompetisi</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="sm:col-span-2">
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Kompetisi</label>
-            <input type="text" id="compNameInput" oninput="updateCompInfo()" placeholder="Contoh: Dubbing Contest 2026"
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+      <!-- Card: Info Kompetisi -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6 space-y-5">
+        <div class="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+          <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+            <i data-lucide="settings-2" class="w-4 h-4"></i>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Jumlah Juara</label>
-            <input type="number" id="winnerCountInput" min="1" max="50" oninput="updateCompInfo()"
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            <h2 class="text-base font-bold text-slate-900">Informasi Kompetisi & Juri</h2>
+            <p class="text-xs text-slate-500">Pengaturan dasar lomba yang sedang dinilai.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nama Kompetisi</label>
+            <input type="text" id="compNameInput" oninput="App.updateCompInfo()" placeholder="Contoh: Dubbing Contest 2026"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nama Juri (Anda)</label>
+            <input type="text" id="judgeNameInput" oninput="App.updateCompInfo()" placeholder="Misal: Juri 1"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Jumlah Juara</label>
+            <input type="number" id="winnerCountInput" min="1" max="50" oninput="App.updateCompInfo()"
+              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none transition" />
+          </div>
+        </div>
+
+        <!-- Banner Multi-Juri Template -->
+        <div class="bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-200/70 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <div class="p-2 rounded-lg bg-white text-indigo-600 shadow-sm shrink-0 mt-0.5">
+              <i data-lucide="users" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-bold text-indigo-950">Sinkronisasi Template Multi-Juri</h3>
+              <p class="text-xs text-indigo-800/80 mt-0.5 leading-relaxed">Panitia cukup buat aspek & daftar peserta sekali, lalu bagikan file template ke semua juri agar ID peserta seragam saat digabung.</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2 shrink-0">
+            <button onclick="App.exportTemplate()" class="inline-flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl font-semibold transition shadow-sm shadow-indigo-500/20">
+              <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+              Ekspor Template
+            </button>
+            <label class="inline-flex items-center gap-1.5 text-xs bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-3.5 py-2 rounded-xl font-semibold transition cursor-pointer shadow-sm">
+              <i data-lucide="folder-input" class="w-3.5 h-3.5"></i>
+              Muat Template
+              <input type="file" accept=".json" onchange="App.importTemplate(event)" class="hidden" />
+            </label>
           </div>
         </div>
 
         <!-- Preset Cepat -->
-        <div class="pt-2">
-          <p class="text-xs font-semibold text-slate-500 mb-2">Gunakan Template Aspek Cepat (opsional):</p>
+        <div class="pt-1">
+          <p class="text-xs font-semibold text-slate-500 mb-2.5">Preset Aspek Cepat (opsional):</p>
           <div class="flex flex-wrap gap-2">
-            <button onclick="applyPreset('dubbing')" class="text-xs bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 border border-slate-200 px-3 py-1.5 rounded-lg transition font-medium">
-              🎙️ Dubbing Contest
+            <button onclick="App.applyPreset('dubbing')" class="inline-flex items-center gap-1.5 text-xs bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 border border-slate-200 px-3.5 py-2 rounded-xl transition font-semibold shadow-sm">
+              <i data-lucide="mic" class="w-3.5 h-3.5 text-indigo-500"></i>
+              Dubbing Contest
             </button>
-            <button onclick="applyPreset('singing')" class="text-xs bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 border border-slate-200 px-3 py-1.5 rounded-lg transition font-medium">
-              🎤 Singing Contest
+            <button onclick="App.applyPreset('singing')" class="inline-flex items-center gap-1.5 text-xs bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 border border-slate-200 px-3.5 py-2 rounded-xl transition font-semibold shadow-sm">
+              <i data-lucide="music" class="w-3.5 h-3.5 text-violet-500"></i>
+              Singing Contest
             </button>
-            <button onclick="applyPreset('cosplay')" class="text-xs bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 border border-slate-200 px-3 py-1.5 rounded-lg transition font-medium">
-              🎭 Cosplay Competition
+            <button onclick="App.applyPreset('cosplay')" class="inline-flex items-center gap-1.5 text-xs bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 border border-slate-200 px-3.5 py-2 rounded-xl transition font-semibold shadow-sm">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+              Cosplay Competition
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Aspek Penjurian -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
-          <div>
-            <h2 class="text-base font-bold text-slate-800">Aspek Penjurian</h2>
-            <p class="text-xs text-slate-500">Nilai tiap aspek menggunakan skala 0–100. Skor akhir dihitung berdasarkan bobot.</p>
+      <!-- Card: Aspek Penjurian -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2.5">
+            <div class="p-2 rounded-lg bg-violet-50 text-violet-600">
+              <i data-lucide="list-checks" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Aspek Penjurian</h2>
+              <p class="text-xs text-slate-500">Aspek berbobot terbesar otomatis menjadi prioritas utama <strong>Tie-Breaker</strong>.</p>
+            </div>
           </div>
-          <span id="totalWeightBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
+          <span id="totalWeightBadge" class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
             Total Bobot: 0
           </span>
         </div>
 
-        <!-- Form Tambah Aspek -->
-        <form onsubmit="addAspect(event)" class="flex flex-col sm:flex-row gap-2">
+        <form onsubmit="App.addAspect(event)" class="flex flex-col sm:flex-row gap-2.5">
           <input type="text" id="newAspectName" required placeholder="Nama aspek (misal: Penghayatan, Lip Sync, Kostum)"
-            class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            class="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none transition" />
           <input type="number" id="newAspectWeight" min="1" max="100" value="25" required title="Bobot penilaian"
-            class="w-full sm:w-28 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Bobot" />
-          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
-            + Tambah Aspek
+            class="w-full sm:w-28 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-center font-semibold focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none transition" placeholder="Bobot" />
+          <button type="submit" class="inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm shadow-indigo-500/20">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Tambah Aspek
           </button>
         </form>
 
-        <!-- Daftar Aspek -->
         <div id="aspectList" class="divide-y divide-slate-100"></div>
       </div>
     </section>
@@ -121,50 +248,106 @@
     <!-- TAB 2: PESERTA & PENILAIAN -->
     <section id="view-scoring" class="hidden space-y-6">
       <!-- Form Tambah Peserta -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-        <h2 class="text-base font-bold text-slate-800 mb-3">Tambah Peserta</h2>
-        <form onsubmit="addParticipant(event)" class="flex flex-col sm:flex-row gap-2">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+            </div>
+            <h2 class="text-base font-bold text-slate-900">Daftar Peserta</h2>
+          </div>
+          <button onclick="App.exportJudgeScores()" class="inline-flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-semibold transition shadow-sm shadow-emerald-500/20">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            Kirim / Ekspor Nilai Saya (.json)
+          </button>
+        </div>
+
+        <form onsubmit="App.addParticipant(event)" class="flex flex-col sm:flex-row gap-2.5">
           <input type="text" id="newParticipantName" required placeholder="Nama peserta / tim"
-            class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            class="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none transition" />
           <input type="text" id="newParticipantSub" placeholder="Keterangan (opsional: Karakter / Judul Lagu)"
-            class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap">
-            + Tambah Peserta
+            class="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none transition" />
+          <button type="submit" class="inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition whitespace-nowrap shadow-sm shadow-indigo-500/20">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Tambah Peserta
           </button>
         </form>
       </div>
 
-      <!-- Filter / Search Peserta -->
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <input type="text" id="searchParticipant" oninput="renderScoring()" placeholder="Cari nama peserta..."
-          class="w-full sm:w-64 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-        <p id="participantCountLabel" class="text-xs font-medium text-slate-500"></p>
+      <!-- Search Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="relative w-full sm:w-72">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          <input type="text" id="searchParticipant" oninput="App.renderScoring()" placeholder="Cari nama peserta..."
+            class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none shadow-sm transition" />
+        </div>
+        <p id="participantCountLabel" class="text-xs font-semibold text-slate-500"></p>
       </div>
 
-      <!-- Daftar Kartu Penilaian Peserta -->
+      <!-- List Kartu Penilaian -->
       <div id="participantList" class="space-y-4"></div>
     </section>
 
-    <!-- TAB 3: KLASEMEN & JUARA -->
+    <!-- TAB 3: KLASEMEN & MULTI-JURI -->
     <section id="view-ranking" class="hidden space-y-6">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 class="text-lg font-bold text-slate-800">Klasemen & Penentuan Juara</h2>
-          <p id="rankingSubtitle" class="text-xs text-slate-500"></p>
+      <!-- Panel Gabung Multi-Juri -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+              <i data-lucide="layers" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Panel Gabung Multi-Juri</h2>
+              <p class="text-xs text-slate-500">Impor file <code>.json</code> dari beberapa juri untuk kalkulasi rata-rata otomatis.</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <label class="inline-flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-semibold transition cursor-pointer shadow-sm shadow-indigo-500/20">
+              <i data-lucide="file-plus-2" class="w-3.5 h-3.5"></i>
+              Impor Nilai Juri Lain
+              <input type="file" accept=".json" multiple onchange="App.importOtherJudges(event)" class="hidden" />
+            </label>
+            <button onclick="App.exportCSV()" class="inline-flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-semibold transition shadow-sm shadow-emerald-500/20">
+              <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+              Export CSV
+            </button>
+          </div>
         </div>
-        <button onclick="exportCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">
-          Export ke CSV (Excel)
-        </button>
+
+        <!-- Daftar Juri Aktif -->
+        <div class="space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none">
+              <input type="checkbox" id="includeSelfCheckbox" onchange="App.toggleIncludeSelf()" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              Sertakan nilai perangkat ini (<span id="selfJudgeLabel" class="text-indigo-700"></span>)
+            </label>
+            <button id="clearImportedBtn" onclick="App.clearImportedJudges()" class="hidden inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 font-semibold">
+              <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+              Hapus semua juri impor
+            </button>
+          </div>
+          <div id="activeJudgesList" class="flex flex-wrap gap-2"></div>
+        </div>
       </div>
 
-      <!-- Podium / Highlight Juara -->
+      <!-- Header Klasemen & Info Tie-Breaker -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 class="text-lg font-extrabold text-slate-900">Klasemen & Penentuan Juara</h3>
+          <p id="rankingSubtitle" class="text-xs text-slate-500"></p>
+        </div>
+        <span id="tieBreakerInfo" class="inline-flex items-center gap-1.5 text-xs bg-amber-50 text-amber-800 border border-amber-200/80 px-3 py-1.5 rounded-full font-semibold"></span>
+      </div>
+
+      <!-- Podium Juara -->
       <div id="winnersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
 
-      <!-- Tabel Lengkap -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <!-- Tabel Klasemen -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse text-sm">
-            <thead id="rankingTableHead" class="bg-slate-100 text-slate-600 text-xs uppercase"></thead>
+            <thead id="rankingTableHead" class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200/80"></thead>
             <tbody id="rankingTableBody" class="divide-y divide-slate-100"></tbody>
           </table>
         </div>
@@ -173,568 +356,918 @@
 
   </main>
 
-  <footer class="text-center text-xs text-slate-400 py-4 border-t border-slate-200 bg-white mt-auto">
-    Data tersimpan lokal di perangkat Anda (LocalStorage) &bull; Tidak memerlukan server.
+  <footer class="text-center text-xs text-slate-400 py-5 border-t border-slate-200/80 bg-white mt-auto">
+    <span class="font-semibold text-slate-500">JuriPRO</span> &bull; Penyimpanan Lokal Otomatis (LocalStorage) &bull; Siap pakai 100% di GitHub Pages.
   </footer>
 
   <script>
-    const STORAGE_KEY = 'juri_kompetisi_app_v1';
+    const App = (() => {
+      const STORAGE_KEY = 'juripro_state_v3';
 
-    const DEFAULT_STATE = {
-      compName: 'Kompetisi 2026',
-      winnerCount: 3,
-      aspects: [
-        { id: 'asp_1', name: 'Teknik / Penguasaan', weight: 35 },
-        { id: 'asp_2', name: 'Penghayatan / Ekspresi', weight: 35 },
-        { id: 'asp_3', name: 'Kreativitas & Penampilan', weight: 30 }
-      ],
-      participants: []
-    };
-
-    const PRESETS = {
-      dubbing: {
-        name: 'Dubbing Contest',
+      const DEFAULT_STATE = {
+        compName: 'Kompetisi 2026',
+        judgeName: 'Juri 1',
+        winnerCount: 3,
+        includeSelfInRanking: true,
         aspects: [
-          { name: 'Lip Sync & Timing', weight: 25 },
-          { name: 'Akting & Penghayatan Karakter', weight: 35 },
-          { name: 'Artikulasi & Intonasi', weight: 25 },
-          { name: 'Kesesuaian Warna Suara', weight: 15 }
-        ]
-      },
-      singing: {
-        name: 'Singing Contest',
-        aspects: [
-          { name: 'Teknik Vokal & Pitch Control', weight: 35 },
-          { name: 'Penghayatan & Dinamika', weight: 30 },
-          { name: 'Tempo & Harmonisasi', weight: 20 },
-          { name: 'Stage Act & Penampilan', weight: 15 }
-        ]
-      },
-      cosplay: {
-        name: 'Cosplay Competition',
-        aspects: [
-          { name: 'Detail & Kerapian Kostum', weight: 35 },
-          { name: 'Kemiripan Karakter (Makeup/Wig)', weight: 25 },
-          { name: 'In-Character & Pose / Skit', weight: 25 },
-          { name: 'Properti & Kreativitas', weight: 15 }
-        ]
-      }
-    };
+          { id: 'asp_1', name: 'Teknik / Penguasaan', weight: 35 },
+          { id: 'asp_2', name: 'Penghayatan / Ekspresi', weight: 35 },
+          { id: 'asp_3', name: 'Kreativitas & Penampilan', weight: 30 },
+        ],
+        participants: [],
+        importedJudges: [],
+      };
 
-    let state = loadState();
-    let activeTab = 'setup';
+      const PRESETS = {
+        dubbing: {
+          name: 'Dubbing Contest',
+          aspects: [
+            { name: 'Akting & Penghayatan Karakter', weight: 35 },
+            { name: 'Lip Sync & Timing', weight: 25 },
+            { name: 'Artikulasi & Intonasi', weight: 25 },
+            { name: 'Kesesuaian Warna Suara', weight: 15 },
+          ],
+        },
+        singing: {
+          name: 'Singing Contest',
+          aspects: [
+            { name: 'Teknik Vokal & Pitch Control', weight: 35 },
+            { name: 'Penghayatan & Dinamika', weight: 30 },
+            { name: 'Tempo & Harmonisasi', weight: 20 },
+            { name: 'Stage Act & Penampilan', weight: 15 },
+          ],
+        },
+        cosplay: {
+          name: 'Cosplay Competition',
+          aspects: [
+            { name: 'Detail & Kerapian Kostum', weight: 35 },
+            { name: 'Kemiripan Karakter (Makeup/Wig)', weight: 25 },
+            { name: 'In-Character & Pose / Skit', weight: 25 },
+            { name: 'Properti & Kreativitas', weight: 15 },
+          ],
+        },
+      };
 
-    function loadState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return structuredClone(DEFAULT_STATE);
-        const parsed = JSON.parse(raw);
-        return {
-          compName: parsed.compName ?? DEFAULT_STATE.compName,
-          winnerCount: Math.max(1, parseInt(parsed.winnerCount) || 3),
-          aspects: Array.isArray(parsed.aspects) ? parsed.aspects : [],
-          participants: Array.isArray(parsed.participants) ? parsed.participants : []
+      const timeFormatter = new Intl.DateTimeFormat('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+      let state = loadState();
+      let activeTab = 'setup';
+
+      // --- UTILITIES ---
+      const uid = (prefix) => {
+        const rand = globalThis.crypto?.randomUUID?.().slice(0, 8) ?? Math.random().toString(36).slice(2, 10);
+        return `${prefix}_${rand}`;
+      };
+
+      const escapeHtml = (str) =>
+        String(str ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+
+      const refreshIcons = () => {
+        if (globalThis.lucide) globalThis.lucide.createIcons();
+      };
+
+      const showToast = (message, type = 'info') => {
+        const container = document.getElementById('toastContainer');
+        const styles = {
+          success: 'bg-emerald-600 text-white',
+          error: 'bg-rose-600 text-white',
+          info: 'bg-slate-900 text-white',
         };
-      } catch (e) {
-        console.error('Gagal memuat data:', e);
-        return structuredClone(DEFAULT_STATE);
-      }
-    }
+        const icons = {
+          success: 'check-circle-2',
+          error: 'alert-circle',
+          info: 'info',
+        };
 
-    function saveState() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        const statusEl = document.getElementById('saveStatus');
-        statusEl.textContent = 'Tersimpan • ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      } catch (e) {
-        alert('Gagal menyimpan ke LocalStorage. Pastikan mode private/incognito tidak memblokir penyimpanan.');
-      }
-    }
+        const el = document.createElement('div');
+        el.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-xs font-semibold transition-all duration-300 translate-y-2 opacity-0 ${styles[type] ?? styles.info}`;
+        el.innerHTML = `<i data-lucide="${icons[type] ?? icons.info}" class="w-4 h-4 shrink-0"></i><span>${escapeHtml(message)}</span>`;
+        container.appendChild(el);
+        refreshIcons();
 
-    function uid(prefix) {
-      return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    }
+        requestAnimationFrame(() => {
+          el.classList.remove('translate-y-2', 'opacity-0');
+        });
 
-    function escapeHtml(str) {
-      return String(str ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
+        setTimeout(() => {
+          el.classList.add('translate-y-2', 'opacity-0');
+          setTimeout(() => el.remove(), 300);
+        }, 3200);
+      };
 
-    // Kalkulasi Skor Akhir (Weighted Average 0 - 100)
-    function calculateFinalScore(participant) {
-      if (!state.aspects.length) return 0;
-      let totalWeighted = 0;
-      let totalWeight = 0;
-      for (const asp of state.aspects) {
-        const w = Number(asp.weight) || 0;
-        const val = Number(participant.scores?.[asp.id]);
-        const score = isNaN(val) ? 0 : val;
-        totalWeighted += score * w;
-        totalWeight += w;
-      }
-      if (totalWeight === 0) return 0;
-      return totalWeighted / totalWeight;
-    }
-
-    function isFullyScored(participant) {
-      if (!state.aspects.length) return false;
-      return state.aspects.every(asp => {
-        const val = participant.scores?.[asp.id];
-        return val !== undefined && val !== '' && !isNaN(Number(val));
-      });
-    }
-
-    // Navigasi Tab
-    function switchTab(tab) {
-      activeTab = tab;
-      ['setup', 'scoring', 'ranking'].forEach(t => {
-        document.getElementById('view-' + t).classList.toggle('hidden', t !== tab);
-        const btn = document.getElementById('tab-' + t);
-        if (t === tab) {
-          btn.classList.add('border-white', 'text-white', 'bg-indigo-700/50');
-          btn.classList.remove('border-transparent', 'text-indigo-200');
-        } else {
-          btn.classList.remove('border-white', 'text-white', 'bg-indigo-700/50');
-          btn.classList.add('border-transparent', 'text-indigo-200');
-        }
-      });
-
-      if (tab === 'setup') renderSetup();
-      if (tab === 'scoring') renderScoring();
-      if (tab === 'ranking') renderRanking();
-    }
-
-    // --- TAB 1: SETUP ---
-    function updateCompInfo() {
-      const nameVal = document.getElementById('compNameInput').value;
-      const winVal = parseInt(document.getElementById('winnerCountInput').value) || 1;
-      state.compName = nameVal;
-      state.winnerCount = Math.max(1, winVal);
-      document.getElementById('headerTitle').textContent = state.compName.trim() || 'Penjurian Kompetisi';
-      saveState();
-    }
-
-    function applyPreset(key) {
-      const preset = PRESETS[key];
-      if (!preset) return;
-      if (state.aspects.length > 0 && !confirm(`Ganti daftar aspek saat ini dengan template "${preset.name}"? (Nilai peserta lama yang aspeknya berubah akan tereset)`)) {
-        return;
-      }
-      state.compName = preset.name;
-      state.aspects = preset.aspects.map(a => ({ id: uid('asp'), name: a.name, weight: a.weight }));
-      saveState();
-      renderSetup();
-    }
-
-    function addAspect(e) {
-      e.preventDefault();
-      const nameInput = document.getElementById('newAspectName');
-      const weightInput = document.getElementById('newAspectWeight');
-      const name = nameInput.value.trim();
-      const weight = Math.max(1, Number(weightInput.value) || 10);
-      if (!name) return;
-
-      state.aspects.push({ id: uid('asp'), name, weight });
-      nameInput.value = '';
-      weightInput.value = '25';
-      saveState();
-      renderSetup();
-    }
-
-    function updateAspect(id, field, value) {
-      const asp = state.aspects.find(a => a.id === id);
-      if (!asp) return;
-      if (field === 'weight') {
-        asp.weight = Math.max(1, Number(value) || 1);
-      } else {
-        asp.name = value;
-      }
-      saveState();
-      updateTotalWeightBadge();
-    }
-
-    function deleteAspect(id) {
-      if (!confirm('Hapus aspek penjurian ini?')) return;
-      state.aspects = state.aspects.filter(a => a.id !== id);
-      state.participants.forEach(p => {
-        if (p.scores) delete p.scores[id];
-      });
-      saveState();
-      renderSetup();
-    }
-
-    function updateTotalWeightBadge() {
-      const total = state.aspects.reduce((sum, a) => sum + (Number(a.weight) || 0), 0);
-      document.getElementById('totalWeightBadge').textContent = `Total Bobot: ${total}`;
-    }
-
-    function renderSetup() {
-      document.getElementById('headerTitle').textContent = state.compName.trim() || 'Penjurian Kompetisi';
-      document.getElementById('compNameInput').value = state.compName;
-      document.getElementById('winnerCountInput').value = state.winnerCount;
-      updateTotalWeightBadge();
-
-      const container = document.getElementById('aspectList');
-      if (!state.aspects.length) {
-        container.innerHTML = `<p class="text-sm text-slate-400 py-4 text-center">Belum ada aspek penjurian. Tambahkan aspek di atas atau pilih template cepat.</p>`;
-        return;
-      }
-
-      container.innerHTML = state.aspects.map((asp, idx) => `
-        <div class="py-3 flex flex-wrap sm:flex-nowrap items-center gap-2">
-          <span class="text-xs font-bold text-slate-400 w-6">${idx + 1}.</span>
-          <input type="text" value="${escapeHtml(asp.name)}"
-            oninput="updateAspect('${asp.id}', 'name', this.value)"
-            class="flex-1 min-w-[160px] px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs text-slate-500">Bobot:</span>
-            <input type="number" min="1" max="100" value="${asp.weight}"
-              oninput="updateAspect('${asp.id}', 'weight', this.value)"
-              class="w-20 px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-center focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-          </div>
-          <button onclick="deleteAspect('${asp.id}')" class="text-rose-500 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition">
-            Hapus
-          </button>
-        </div>
-      `).join('');
-    }
-
-    // --- TAB 2: PESERTA & PENILAIAN ---
-    function addParticipant(e) {
-      e.preventDefault();
-      const nameInput = document.getElementById('newParticipantName');
-      const subInput = document.getElementById('newParticipantSub');
-      const name = nameInput.value.trim();
-      if (!name) return;
-
-      state.participants.push({
-        id: uid('p'),
-        name,
-        subtitle: subInput.value.trim(),
-        scores: {},
-        note: ''
-      });
-      nameInput.value = '';
-      subInput.value = '';
-      saveState();
-      renderScoring();
-    }
-
-    function updateScore(participantId, aspectId, rawValue) {
-      const p = state.participants.find(item => item.id === participantId);
-      if (!p) return;
-      if (!p.scores) p.scores = {};
-
-      if (rawValue === '') {
-        delete p.scores[aspectId];
-      } else {
-        let num = parseFloat(rawValue);
-        if (isNaN(num)) num = 0;
-        if (num < 0) num = 0;
-        if (num > 100) num = 100;
-        p.scores[aspectId] = num;
-      }
-
-      saveState();
-      const finalScore = calculateFinalScore(p);
-      const scoreEl = document.getElementById('total_' + participantId);
-      if (scoreEl) scoreEl.textContent = finalScore.toFixed(2);
-
-      const badgeEl = document.getElementById('status_' + participantId);
-      if (badgeEl) {
-        const done = isFullyScored(p);
-        badgeEl.textContent = done ? 'Lengkap' : 'Belum Lengkap';
-        badgeEl.className = done
-          ? 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700'
-          : 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700';
-      }
-    }
-
-    function updateNote(participantId, value) {
-      const p = state.participants.find(item => item.id === participantId);
-      if (!p) return;
-      p.note = value;
-      saveState();
-    }
-
-    function deleteParticipant(participantId) {
-      const p = state.participants.find(item => item.id === participantId);
-      if (!p) return;
-      if (!confirm(`Hapus peserta "${p.name}" beserta nilainya?`)) return;
-      state.participants = state.participants.filter(item => item.id !== participantId);
-      saveState();
-      renderScoring();
-    }
-
-    function renderScoring() {
-      const query = (document.getElementById('searchParticipant')?.value || '').toLowerCase().trim();
-      const filtered = state.participants.filter(p =>
-        p.name.toLowerCase().includes(query) || (p.subtitle || '').toLowerCase().includes(query)
-      );
-
-      document.getElementById('participantCountLabel').textContent =
-        `Menampilkan ${filtered.length} dari ${state.participants.length} peserta`;
-
-      const container = document.getElementById('participantList');
-
-      if (!state.aspects.length) {
-        container.innerHTML = `
-          <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-4 text-sm">
-            Anda belum menambahkan <strong>Aspek Penjurian</strong>. Silakan atur aspek terlebih dahulu di tab <em>1. Pengaturan & Aspek</em>.
-          </div>`;
-        return;
-      }
-
-      if (!filtered.length) {
-        container.innerHTML = `
-          <div class="bg-white border border-slate-200 rounded-xl p-8 text-center text-sm text-slate-400">
-            ${state.participants.length ? 'Peserta tidak ditemukan.' : 'Belum ada peserta. Tambahkan peserta menggunakan form di atas.'}
-          </div>`;
-        return;
-      }
-
-      container.innerHTML = filtered.map((p, idx) => {
-        const finalScore = calculateFinalScore(p).toFixed(2);
-        const done = isFullyScored(p);
-        const nomorUrut = state.participants.findIndex(item => item.id === p.id) + 1;
-
-        return `
-          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 space-y-4">
-            <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
-              <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">#${nomorUrut}</span>
-                  <h3 class="font-bold text-slate-800 text-base">${escapeHtml(p.name)}</h3>
-                  <span id="status_${p.id}" class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                    ${done ? 'Lengkap' : 'Belum Lengkap'}
-                  </span>
-                </div>
-                ${p.subtitle ? `<p class="text-xs text-slate-500 mt-0.5">${escapeHtml(p.subtitle)}</p>` : ''}
-              </div>
-              <div class="flex items-center gap-3">
-                <div class="text-right">
-                  <span class="block text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Skor Akhir</span>
-                  <span id="total_${p.id}" class="text-xl font-extrabold text-indigo-700">${finalScore}</span>
-                </div>
-                <button onclick="deleteParticipant('${p.id}')" class="text-rose-500 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition">
-                  Hapus
-                </button>
-              </div>
-            </div>
-
-            <!-- Input Skor per Aspek -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              ${state.aspects.map(asp => {
-                const val = p.scores?.[asp.id] ?? '';
-                return `
-                  <div class="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
-                    <div class="flex items-center justify-between gap-2 mb-1.5">
-                      <label class="text-xs font-semibold text-slate-700 truncate" title="${escapeHtml(asp.name)}">${escapeHtml(asp.name)}</label>
-                      <span class="text-[11px] text-slate-400 whitespace-nowrap">Bobot ${asp.weight}</span>
-                    </div>
-                    <input type="number" min="0" max="100" step="0.5" placeholder="0 - 100" value="${val}"
-                      oninput="updateScore('${p.id}', '${asp.id}', this.value)"
-                      class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-                  </div>
-                `;
-              }).join('')}
-            </div>
-
-            <!-- Catatan Juri -->
-            <div>
-              <input type="text" value="${escapeHtml(p.note || '')}" placeholder="Catatan juri untuk peserta ini (opsional)..."
-                oninput="updateNote('${p.id}', this.value)"
-                class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // --- TAB 3: KLASEMEN & JUARA ---
-    function getRankedParticipants() {
-      return [...state.participants]
-        .map(p => ({ ...p, finalScore: calculateFinalScore(p) }))
-        .sort((a, b) => b.finalScore - a.finalScore);
-    }
-
-    function renderRanking() {
-      const ranked = getRankedParticipants();
-      const winCount = Math.max(1, state.winnerCount);
-
-      document.getElementById('rankingSubtitle').textContent =
-        `${state.compName || 'Kompetisi'} • Menentukan Top ${winCount} Juara dari ${ranked.length} peserta`;
-
-      const winnersGrid = document.getElementById('winnersGrid');
-      const tableHead = document.getElementById('rankingTableHead');
-      const tableBody = document.getElementById('rankingTableBody');
-
-      if (!ranked.length) {
-        winnersGrid.innerHTML = '';
-        tableHead.innerHTML = '';
-        tableBody.innerHTML = `<tr><td class="p-8 text-center text-slate-400">Belum ada data peserta untuk ditampilkan.</td></tr>`;
-        return;
-      }
-
-      // Kartu Pemenang
-      const winners = ranked.slice(0, winCount);
-      winnersGrid.innerHTML = winners.map((p, i) => {
-        const rank = i + 1;
-        let medal = `🏆 Juara ${rank}`;
-        let cardStyle = 'border-indigo-200 bg-indigo-50/40';
-        let badgeStyle = 'bg-indigo-600 text-white';
-
-        if (rank === 1) {
-          medal = '🥇 Juara 1';
-          cardStyle = 'border-amber-300 bg-amber-50/60';
-          badgeStyle = 'bg-amber-500 text-white';
-        } else if (rank === 2) {
-          medal = '🥈 Juara 2';
-          cardStyle = 'border-slate-300 bg-slate-100/70';
-          badgeStyle = 'bg-slate-500 text-white';
-        } else if (rank === 3) {
-          medal = '🥉 Juara 3';
-          cardStyle = 'border-orange-300 bg-orange-50/60';
-          badgeStyle = 'bg-orange-600 text-white';
-        }
-
-        return `
-          <div class="rounded-xl border-2 ${cardStyle} p-4 shadow-sm flex flex-col justify-between gap-2">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-bold px-2.5 py-1 rounded-full ${badgeStyle}">${medal}</span>
-              <span class="text-2xl font-extrabold text-slate-800">${p.finalScore.toFixed(2)}</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-slate-900 text-base">${escapeHtml(p.name)}</h3>
-              ${p.subtitle ? `<p class="text-xs text-slate-600">${escapeHtml(p.subtitle)}</p>` : ''}
-              ${p.note ? `<p class="text-xs text-slate-500 italic mt-1">"${escapeHtml(p.note)}"</p>` : ''}
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Tabel Klasemen Lengkap
-      tableHead.innerHTML = `
-        <tr>
-          <th class="px-4 py-3">Peringkat</th>
-          <th class="px-4 py-3">Peserta</th>
-          ${state.aspects.map(a => `<th class="px-4 py-3 text-right">${escapeHtml(a.name)} <span class="text-[10px] font-normal">(${a.weight})</span></th>`).join('')}
-          <th class="px-4 py-3 text-right">Skor Akhir</th>
-          <th class="px-4 py-3">Catatan</th>
-        </tr>
-      `;
-
-      tableBody.innerHTML = ranked.map((p, i) => {
-        const rank = i + 1;
-        const isWinner = rank <= winCount;
-        return `
-          <tr class="${isWinner ? 'bg-indigo-50/40 font-medium' : 'hover:bg-slate-50'}">
-            <td class="px-4 py-3 whitespace-nowrap">
-              <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${isWinner ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}">
-                ${rank}
-              </span>
-            </td>
-            <td class="px-4 py-3">
-              <div class="font-semibold text-slate-800">${escapeHtml(p.name)}</div>
-              ${p.subtitle ? `<div class="text-xs text-slate-500">${escapeHtml(p.subtitle)}</div>` : ''}
-            </td>
-            ${state.aspects.map(a => {
-              const val = p.scores?.[a.id];
-              return `<td class="px-4 py-3 text-right text-slate-600">${val !== undefined ? val : '-'}</td>`;
-            }).join('')}
-            <td class="px-4 py-3 text-right font-extrabold text-indigo-700">${p.finalScore.toFixed(2)}</td>
-            <td class="px-4 py-3 text-xs text-slate-500 max-w-xs truncate" title="${escapeHtml(p.note || '')}">${escapeHtml(p.note || '-')}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    // --- EXPORT, BACKUP, RESTORE, RESET ---
-    function exportCSV() {
-      const ranked = getRankedParticipants();
-      if (!ranked.length) return alert('Belum ada data peserta untuk diekspor.');
-
-      const headers = ['Peringkat', 'Status', 'Nama Peserta', 'Keterangan', ...state.aspects.map(a => `${a.name} (Bobot ${a.weight})`), 'Skor Akhir', 'Catatan'];
-      const rows = ranked.map((p, i) => {
-        const rank = i + 1;
-        const status = rank <= state.winnerCount ? `Juara ${rank}` : 'Peserta';
-        return [
-          rank,
-          status,
-          p.name,
-          p.subtitle || '',
-          ...state.aspects.map(a => p.scores?.[a.id] ?? 0),
-          p.finalScore.toFixed(2),
-          p.note || ''
-        ];
-      });
-
-      const csvContent = [headers, ...rows]
-        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-        .join('\n');
-
-      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const filename = (state.compName || 'hasil-penjurian').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      a.href = url;
-      a.download = `${filename}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function exportBackup() {
-      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `backup-juri-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function importBackup(event) {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
+      function loadState() {
         try {
-          const parsed = JSON.parse(e.target.result);
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return structuredClone(DEFAULT_STATE);
+          const parsed = JSON.parse(raw);
+          return {
+            compName: parsed.compName ?? DEFAULT_STATE.compName,
+            judgeName: parsed.judgeName ?? DEFAULT_STATE.judgeName,
+            winnerCount: Math.max(1, Number.parseInt(parsed.winnerCount, 10) || 3),
+            includeSelfInRanking: parsed.includeSelfInRanking ?? true,
+            aspects: Array.isArray(parsed.aspects) ? parsed.aspects : [],
+            participants: Array.isArray(parsed.participants) ? parsed.participants : [],
+            importedJudges: Array.isArray(parsed.importedJudges) ? parsed.importedJudges : [],
+          };
+        } catch {
+          return structuredClone(DEFAULT_STATE);
+        }
+      }
+
+      const saveState = () => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          const statusEl = document.getElementById('saveStatus');
+          if (statusEl) statusEl.textContent = `Tersimpan ${timeFormatter.format(new Date())}`;
+        } catch {
+          showToast('Gagal menyimpan ke LocalStorage. Cek mode private browser.', 'error');
+        }
+      };
+
+      const calculateWeightedScore = (scoresObj) => {
+        if (!state.aspects.length) return 0;
+        let totalWeighted = 0;
+        let totalWeight = 0;
+        for (const asp of state.aspects) {
+          const w = Number(asp.weight) || 0;
+          const val = Number(scoresObj?.[asp.id]);
+          totalWeighted += (Number.isNaN(val) ? 0 : val) * w;
+          totalWeight += w;
+        }
+        return totalWeight === 0 ? 0 : totalWeighted / totalWeight;
+      };
+
+      const isFullyScored = (participant) =>
+        state.aspects.length > 0 &&
+        state.aspects.every((asp) => {
+          const val = participant.scores?.[asp.id];
+          return val !== undefined && val !== '' && !Number.isNaN(Number(val));
+        });
+
+      const updateHeaderDisplay = () => {
+        document.getElementById('headerCompName').textContent = state.compName.trim() || 'Penjurian Kompetisi';
+        const badge = document.getElementById('headerJudgeBadge');
+        badge.innerHTML = `<i data-lucide="user" class="w-3 h-3"></i> ${escapeHtml(state.judgeName.trim() || 'Juri')}`;
+        refreshIcons();
+      };
+
+      // --- NAVIGATION ---
+      const switchTab = (tab) => {
+        activeTab = tab;
+        for (const t of ['setup', 'scoring', 'ranking']) {
+          document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tab);
+          const btn = document.getElementById(`tab-${t}`);
+          if (t === tab) {
+            btn.classList.add('bg-white', 'text-indigo-700', 'shadow-sm');
+            btn.classList.remove('text-slate-500', 'hover:text-slate-800');
+          } else {
+            btn.classList.remove('bg-white', 'text-indigo-700', 'shadow-sm');
+            btn.classList.add('text-slate-500', 'hover:text-slate-800');
+          }
+        }
+        updateHeaderDisplay();
+        if (tab === 'setup') renderSetup();
+        if (tab === 'scoring') renderScoring();
+        if (tab === 'ranking') renderRanking();
+      };
+
+      // --- TAB 1: SETUP ---
+      const updateCompInfo = () => {
+        state.compName = document.getElementById('compNameInput').value;
+        state.judgeName = document.getElementById('judgeNameInput').value;
+        state.winnerCount = Math.max(1, Number.parseInt(document.getElementById('winnerCountInput').value, 10) || 1);
+        updateHeaderDisplay();
+        saveState();
+      };
+
+      const applyPreset = (key) => {
+        const preset = PRESETS[key];
+        if (!preset) return;
+        if (state.aspects.length > 0 && !confirm(`Ganti daftar aspek dengan preset "${preset.name}"?`)) return;
+        state.compName = preset.name;
+        state.aspects = preset.aspects.map((a) => ({ id: uid('asp'), name: a.name, weight: a.weight }));
+        saveState();
+        renderSetup();
+        showToast(`Preset "${preset.name}" diterapkan`, 'success');
+      };
+
+      const addAspect = (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById('newAspectName');
+        const weightInput = document.getElementById('newAspectWeight');
+        const name = nameInput.value.trim();
+        const weight = Math.max(1, Number(weightInput.value) || 10);
+        if (!name) return;
+
+        state.aspects.push({ id: uid('asp'), name, weight });
+        nameInput.value = '';
+        weightInput.value = '25';
+        saveState();
+        renderSetup();
+        showToast(`Aspek "${name}" ditambahkan`, 'success');
+      };
+
+      const updateAspect = (id, field, value) => {
+        const asp = state.aspects.find((a) => a.id === id);
+        if (!asp) return;
+        asp[field] = field === 'weight' ? Math.max(1, Number(value) || 1) : value;
+        saveState();
+        updateTotalWeightBadge();
+      };
+
+      const deleteAspect = (id) => {
+        if (!confirm('Hapus aspek penjurian ini?')) return;
+        state.aspects = state.aspects.filter((a) => a.id !== id);
+        state.participants.forEach((p) => delete p.scores?.[id]);
+        saveState();
+        renderSetup();
+        showToast('Aspek dihapus', 'info');
+      };
+
+      const updateTotalWeightBadge = () => {
+        const total = state.aspects.reduce((sum, a) => sum + (Number(a.weight) || 0), 0);
+        document.getElementById('totalWeightBadge').textContent = `Total Bobot: ${total}`;
+      };
+
+      const renderSetup = () => {
+        updateHeaderDisplay();
+        document.getElementById('compNameInput').value = state.compName;
+        document.getElementById('judgeNameInput').value = state.judgeName;
+        document.getElementById('winnerCountInput').value = state.winnerCount;
+        updateTotalWeightBadge();
+
+        const container = document.getElementById('aspectList');
+        if (!state.aspects.length) {
+          container.innerHTML = `<p class="text-sm text-slate-400 py-6 text-center">Belum ada aspek penjurian. Tambahkan aspek di atas atau pilih preset cepat.</p>`;
+          return;
+        }
+
+        container.innerHTML = state.aspects
+          .map(
+            (asp, idx) => `
+          <div class="py-3 flex flex-wrap sm:flex-nowrap items-center gap-2.5">
+            <span class="text-xs font-bold text-slate-400 w-6 text-center">${idx + 1}</span>
+            <input type="text" value="${escapeHtml(asp.name)}"
+              oninput="App.updateAspect('${asp.id}', 'name', this.value)"
+              class="flex-1 min-w-[160px] px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none transition" />
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-medium text-slate-500">Bobot</span>
+              <input type="number" min="1" max="100" value="${asp.weight}"
+                oninput="App.updateAspect('${asp.id}', 'weight', this.value)"
+                class="w-20 px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-center focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none transition" />
+            </div>
+            <button onclick="App.deleteAspect('${asp.id}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus aspek">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>`
+          )
+          .join('');
+        refreshIcons();
+      };
+
+      // --- TAB 2: SCORING ---
+      const addParticipant = (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById('newParticipantName');
+        const subInput = document.getElementById('newParticipantSub');
+        const name = nameInput.value.trim();
+        if (!name) return;
+
+        state.participants.push({
+          id: uid('p'),
+          name,
+          subtitle: subInput.value.trim(),
+          scores: {},
+          note: '',
+        });
+        nameInput.value = '';
+        subInput.value = '';
+        saveState();
+        renderScoring();
+        showToast(`Peserta "${name}" ditambahkan`, 'success');
+      };
+
+      const updateScore = (participantId, aspectId, rawValue, source) => {
+        const p = state.participants.find((item) => item.id === participantId);
+        if (!p) return;
+        p.scores ??= {};
+
+        let displayVal = '';
+        let sliderVal = 0;
+
+        if (rawValue === '' && source === 'number') {
+          delete p.scores[aspectId];
+        } else {
+          let num = Number.parseFloat(rawValue);
+          if (Number.isNaN(num)) num = 0;
+          num = Math.min(100, Math.max(0, num));
+          p.scores[aspectId] = num;
+          displayVal = num;
+          sliderVal = num;
+        }
+
+        if (source === 'slider') {
+          const numEl = document.getElementById(`num_${participantId}_${aspectId}`);
+          if (numEl) numEl.value = displayVal;
+        } else {
+          const rngEl = document.getElementById(`rng_${participantId}_${aspectId}`);
+          if (rngEl) rngEl.value = sliderVal;
+        }
+
+        saveState();
+
+        const scoreEl = document.getElementById(`total_${participantId}`);
+        if (scoreEl) scoreEl.textContent = calculateWeightedScore(p.scores).toFixed(2);
+
+        const badgeEl = document.getElementById(`status_${participantId}`);
+        if (badgeEl) {
+          const done = isFullyScored(p);
+          badgeEl.textContent = done ? 'Lengkap' : 'Belum Lengkap';
+          badgeEl.className = done
+            ? 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+            : 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/80';
+        }
+      };
+
+      const updateNote = (participantId, value) => {
+        const p = state.participants.find((item) => item.id === participantId);
+        if (!p) return;
+        p.note = value;
+        saveState();
+      };
+
+      const deleteParticipant = (participantId) => {
+        const p = state.participants.find((item) => item.id === participantId);
+        if (!p || !confirm(`Hapus peserta "${p.name}" beserta nilainya?`)) return;
+        state.participants = state.participants.filter((item) => item.id !== participantId);
+        saveState();
+        renderScoring();
+        showToast(`Peserta "${p.name}" dihapus`, 'info');
+      };
+
+      const renderScoring = () => {
+        const query = (document.getElementById('searchParticipant')?.value ?? '').toLowerCase().trim();
+        const filtered = state.participants.filter(
+          (p) => p.name.toLowerCase().includes(query) || (p.subtitle ?? '').toLowerCase().includes(query)
+        );
+
+        document.getElementById('participantCountLabel').textContent = `Menampilkan ${filtered.length} dari ${state.participants.length} peserta`;
+        const container = document.getElementById('participantList');
+
+        if (!state.aspects.length) {
+          container.innerHTML = `
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-5 text-sm flex items-center gap-3">
+              <i data-lucide="alert-triangle" class="w-5 h-5 shrink-0"></i>
+              <span>Anda belum menambahkan <strong>Aspek Penjurian</strong>. Atur aspek terlebih dahulu di tab <em>1. Pengaturan & Aspek</em>.</span>
+            </div>`;
+          refreshIcons();
+          return;
+        }
+
+        if (!filtered.length) {
+          container.innerHTML = `
+            <div class="bg-white border border-slate-200/80 rounded-2xl p-10 text-center space-y-2">
+              <i data-lucide="users" class="w-8 h-8 text-slate-300 mx-auto"></i>
+              <p class="text-sm text-slate-400 font-medium">${state.participants.length ? 'Peserta tidak ditemukan.' : 'Belum ada peserta. Tambahkan peserta di atas atau muat Template di Tab 1.'}</p>
+            </div>`;
+          refreshIcons();
+          return;
+        }
+
+        container.innerHTML = filtered
+          .map((p) => {
+            const finalScore = calculateWeightedScore(p.scores).toFixed(2);
+            const done = isFullyScored(p);
+            const nomorUrut = state.participants.findIndex((item) => item.id === p.id) + 1;
+
+            return `
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-4 hover:border-indigo-200/80 transition">
+              <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-3.5">
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-extrabold bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-lg">#${nomorUrut}</span>
+                    <h3 class="font-bold text-slate-900 text-base">${escapeHtml(p.name)}</h3>
+                    <span id="status_${p.id}" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full ${done ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-amber-50 text-amber-700 border border-amber-200/80'}">
+                      ${done ? 'Lengkap' : 'Belum Lengkap'}
+                    </span>
+                  </div>
+                  ${p.subtitle ? `<p class="text-xs text-slate-500 mt-1">${escapeHtml(p.subtitle)}</p>` : ''}
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="text-right bg-indigo-50/70 px-3.5 py-1.5 rounded-xl border border-indigo-100">
+                    <span class="block text-[10px] uppercase tracking-wider text-indigo-500 font-bold">Skor Anda</span>
+                    <span id="total_${p.id}" class="text-xl font-extrabold text-indigo-700 tabular-nums">${finalScore}</span>
+                  </div>
+                  <button onclick="App.deleteParticipant('${p.id}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus peserta">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sliders + Number Inputs -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                ${state.aspects
+                  .map((asp) => {
+                    const rawVal = p.scores?.[asp.id];
+                    const hasVal = rawVal !== undefined && rawVal !== '';
+                    const numVal = hasVal ? rawVal : '';
+                    const sliderVal = hasVal ? rawVal : 0;
+
+                    return `
+                    <div class="bg-slate-50/80 border border-slate-200/70 rounded-xl p-3.5 space-y-2.5">
+                      <div class="flex items-center justify-between gap-2">
+                        <label class="text-xs font-bold text-slate-700 truncate" title="${escapeHtml(asp.name)}">${escapeHtml(asp.name)}</label>
+                        <span class="text-[11px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-200/70 whitespace-nowrap">Bobot ${asp.weight}</span>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <input type="range" id="rng_${p.id}_${asp.id}" min="0" max="100" step="0.5" value="${sliderVal}"
+                          oninput="App.updateScore('${p.id}', '${asp.id}', this.value, 'slider')"
+                          class="modern-slider flex-1" />
+                        <input type="number" id="num_${p.id}_${asp.id}" min="0" max="100" step="0.5" placeholder="0" value="${numVal}"
+                          oninput="App.updateScore('${p.id}', '${asp.id}', this.value, 'number')"
+                          class="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-extrabold text-center text-slate-800 tabular-nums focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none" />
+                      </div>
+                    </div>`;
+                  })
+                  .join('')}
+              </div>
+
+              <!-- Catatan -->
+              <div class="relative">
+                <i data-lucide="message-square" class="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                <input type="text" value="${escapeHtml(p.note ?? '')}" placeholder="Catatan juri untuk peserta ini (opsional)..."
+                  oninput="App.updateNote('${p.id}', this.value)"
+                  class="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none transition" />
+              </div>
+            </div>`;
+          })
+          .join('');
+        refreshIcons();
+      };
+
+      // --- TAB 3: RANKING, TIE-BREAKER & MULTI-JURI ---
+      const getActiveJudgesList = () => {
+        const judges = [];
+        if (state.includeSelfInRanking) {
+          const selfScores = {};
+          state.participants.forEach((p) => {
+            selfScores[p.id] = { scores: p.scores ?? {}, note: p.note ?? '' };
+          });
+          judges.push({
+            id: 'self',
+            judgeName: state.judgeName.trim() || 'Juri (Perangkat Ini)',
+            isSelf: true,
+            scoresByParticipant: selfScores,
+          });
+        }
+        state.importedJudges.forEach((j) => judges.push({ ...j, isSelf: false }));
+        return judges;
+      };
+
+      const getRankedParticipants = () => {
+        const activeJudges = getActiveJudgesList();
+        const aspectsByWeight = [...state.aspects].sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0));
+
+        const computed = state.participants.map((p) => {
+          const aspectAverages = {};
+          const judgeTotals = {};
+          const notes = [];
+
+          if (activeJudges.length > 0) {
+            state.aspects.forEach((asp) => {
+              const sum = activeJudges.reduce((acc, j) => {
+                const val = Number(j.scoresByParticipant?.[p.id]?.scores?.[asp.id]);
+                return acc + (Number.isNaN(val) ? 0 : val);
+              }, 0);
+              aspectAverages[asp.id] = sum / activeJudges.length;
+            });
+
+            let sumTotals = 0;
+            activeJudges.forEach((j) => {
+              const jData = j.scoresByParticipant?.[p.id] ?? { scores: {}, note: '' };
+              const t = calculateWeightedScore(jData.scores);
+              judgeTotals[j.id] = t;
+              sumTotals += t;
+              if (jData.note?.trim()) notes.push(`${j.judgeName}: ${jData.note.trim()}`);
+            });
+
+            return {
+              ...p,
+              finalScore: sumTotals / activeJudges.length,
+              aspectAverages,
+              judgeTotals,
+              combinedNotes: notes.join(' | '),
+              tieBreakReason: '',
+            };
+          }
+
+          return { ...p, finalScore: 0, aspectAverages, judgeTotals, combinedNotes: '', tieBreakReason: '' };
+        });
+
+        computed.sort((a, b) => {
+          const diff = Number(b.finalScore.toFixed(4)) - Number(a.finalScore.toFixed(4));
+          if (diff !== 0) return diff;
+          for (const asp of aspectsByWeight) {
+            const aVal = Number((a.aspectAverages[asp.id] ?? 0).toFixed(4));
+            const bVal = Number((b.aspectAverages[asp.id] ?? 0).toFixed(4));
+            if (bVal !== aVal) return bVal - aVal;
+          }
+          return 0;
+        });
+
+        for (let i = 0; i < computed.length; i++) {
+          const curr = computed[i];
+          const prev = computed[i - 1];
+          const next = computed[i + 1];
+          const tiedPrev = prev && prev.finalScore.toFixed(2) === curr.finalScore.toFixed(2);
+          const tiedNext = next && next.finalScore.toFixed(2) === curr.finalScore.toFixed(2);
+
+          if (tiedPrev || tiedNext) {
+            const partner = tiedNext ? next : prev;
+            for (const asp of aspectsByWeight) {
+              const cVal = Number((curr.aspectAverages[asp.id] ?? 0).toFixed(4));
+              const pVal = Number((partner.aspectAverages[asp.id] ?? 0).toFixed(4));
+              if (cVal !== pVal) {
+                curr.tieBreakReason = `Tie-breaker: ${asp.name}`;
+                break;
+              }
+            }
+            curr.tieBreakReason ||= 'Seri Sempurna';
+          }
+        }
+
+        return { ranked: computed, activeJudges, aspectsByWeight };
+      };
+
+      const toggleIncludeSelf = () => {
+        state.includeSelfInRanking = document.getElementById('includeSelfCheckbox').checked;
+        saveState();
+        renderRanking();
+      };
+
+      const removeImportedJudge = (judgeId) => {
+        state.importedJudges = state.importedJudges.filter((j) => j.id !== judgeId);
+        saveState();
+        renderRanking();
+        showToast('Data juri dihapus dari klasemen', 'info');
+      };
+
+      const clearImportedJudges = () => {
+        if (!confirm('Hapus semua data juri lain yang sudah diimpor?')) return;
+        state.importedJudges = [];
+        saveState();
+        renderRanking();
+        showToast('Semua juri impor dihapus', 'info');
+      };
+
+      const renderRanking = () => {
+        document.getElementById('includeSelfCheckbox').checked = state.includeSelfInRanking;
+        document.getElementById('selfJudgeLabel').textContent = state.judgeName.trim() || 'Juri 1';
+        document.getElementById('clearImportedBtn').classList.toggle('hidden', state.importedJudges.length === 0);
+
+        const { ranked, activeJudges, aspectsByWeight } = getRankedParticipants();
+        const winCount = Math.max(1, state.winnerCount);
+
+        const judgesContainer = document.getElementById('activeJudgesList');
+        if (!activeJudges.length) {
+          judgesContainer.innerHTML = `<span class="text-xs text-rose-500 font-medium">Belum ada juri aktif. Centang perangkat ini atau impor file nilai juri lain.</span>`;
+        } else {
+          judgesContainer.innerHTML = activeJudges
+            .map(
+              (j) => `
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${j.isSelf ? 'bg-indigo-50 text-indigo-700 border-indigo-200/80' : 'bg-emerald-50 text-emerald-700 border-emerald-200/80'}">
+              <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+              ${escapeHtml(j.judgeName)}
+              ${!j.isSelf ? `<button onclick="App.removeImportedJudge('${j.id}')" class="ml-1 hover:text-rose-600 transition" title="Hapus"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>` : ''}
+            </span>`
+            )
+            .join('');
+        }
+
+        document.getElementById('rankingSubtitle').textContent = `${state.compName || 'Kompetisi'} • Top ${winCount} Juara • Rata-rata dari ${activeJudges.length} Juri`;
+
+        const topAspect = aspectsByWeight[0];
+        document.getElementById('tieBreakerInfo').innerHTML = `<i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i> ${topAspect ? `Tie-Breaker: ${escapeHtml(topAspect.name)} (Bobot ${topAspect.weight})` : 'Tie-Breaker Aktif'}`;
+
+        const winnersGrid = document.getElementById('winnersGrid');
+        const tableHead = document.getElementById('rankingTableHead');
+        const tableBody = document.getElementById('rankingTableBody');
+
+        if (!ranked.length) {
+          winnersGrid.innerHTML = '';
+          tableHead.innerHTML = '';
+          tableBody.innerHTML = `<tr><td class="p-10 text-center text-slate-400">Belum ada data peserta untuk ditampilkan.</td></tr>`;
+          refreshIcons();
+          return;
+        }
+
+        const winners = ranked.slice(0, winCount);
+        winnersGrid.innerHTML = winners
+          .map((p, i) => {
+            const rank = i + 1;
+            const styles = {
+              1: { card: 'border-amber-300 bg-gradient-to-br from-amber-50 to-white', badge: 'bg-amber-500 text-white', icon: 'crown' },
+              2: { card: 'border-slate-300 bg-gradient-to-br from-slate-100/80 to-white', badge: 'bg-slate-600 text-white', icon: 'medal' },
+              3: { card: 'border-orange-300 bg-gradient-to-br from-orange-50 to-white', badge: 'bg-orange-600 text-white', icon: 'medal' },
+            }[rank] ?? { card: 'border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-white', badge: 'bg-indigo-600 text-white', icon: 'award' };
+
+            return `
+            <div class="rounded-2xl border-2 ${styles.card} p-5 shadow-sm flex flex-col justify-between gap-3">
+              <div class="flex items-center justify-between gap-2">
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${styles.badge}">
+                  <i data-lucide="${styles.icon}" class="w-3.5 h-3.5"></i>
+                  Juara ${rank}
+                </span>
+                <span class="text-2xl font-extrabold text-slate-900 tabular-nums">${p.finalScore.toFixed(2)}</span>
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-900 text-base">${escapeHtml(p.name)}</h4>
+                ${p.subtitle ? `<p class="text-xs text-slate-500 mt-0.5">${escapeHtml(p.subtitle)}</p>` : ''}
+                ${p.tieBreakReason ? `<span class="inline-flex items-center gap-1 mt-2 text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md"><i data-lucide="zap" class="w-3 h-3"></i>${escapeHtml(p.tieBreakReason)}</span>` : ''}
+              </div>
+            </div>`;
+          })
+          .join('');
+
+        const showPerJudgeCols = activeJudges.length > 1;
+        tableHead.innerHTML = `
+          <tr>
+            <th class="px-4 py-3.5">Rank</th>
+            <th class="px-4 py-3.5">Peserta</th>
+            ${
+              showPerJudgeCols
+                ? activeJudges.map((j) => `<th class="px-4 py-3.5 text-right">${escapeHtml(j.judgeName)}</th>`).join('')
+                : state.aspects.map((a) => `<th class="px-4 py-3.5 text-right">${escapeHtml(a.name)} <span class="text-[10px] font-normal">(${a.weight})</span></th>`).join('')
+            }
+            <th class="px-4 py-3.5 text-right">Skor Akhir</th>
+            <th class="px-4 py-3.5">Catatan</th>
+          </tr>`;
+
+        tableBody.innerHTML = ranked
+          .map((p, i) => {
+            const rank = i + 1;
+            const isWinner = rank <= winCount;
+            return `
+            <tr class="${isWinner ? 'bg-indigo-50/40' : 'hover:bg-slate-50/80'} transition">
+              <td class="px-4 py-3.5 whitespace-nowrap">
+                <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-extrabold ${isWinner ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}">
+                  ${rank}
+                </span>
+              </td>
+              <td class="px-4 py-3.5">
+                <div class="font-bold text-slate-800">${escapeHtml(p.name)}</div>
+                ${p.subtitle ? `<div class="text-xs text-slate-500">${escapeHtml(p.subtitle)}</div>` : ''}
+                ${p.tieBreakReason ? `<div class="text-[10px] font-bold text-amber-700 mt-0.5">${escapeHtml(p.tieBreakReason)}</div>` : ''}
+              </td>
+              ${
+                showPerJudgeCols
+                  ? activeJudges.map((j) => `<td class="px-4 py-3.5 text-right text-slate-600 tabular-nums">${(p.judgeTotals[j.id] ?? 0).toFixed(2)}</td>`).join('')
+                  : state.aspects.map((a) => `<td class="px-4 py-3.5 text-right text-slate-600 tabular-nums">${(p.aspectAverages[a.id] ?? 0).toFixed(1)}</td>`).join('')
+              }
+              <td class="px-4 py-3.5 text-right font-extrabold text-indigo-700 tabular-nums">${p.finalScore.toFixed(2)}</td>
+              <td class="px-4 py-3.5 text-xs text-slate-500 max-w-xs truncate" title="${escapeHtml(p.combinedNotes ?? '')}">${escapeHtml(p.combinedNotes || '-')}</td>
+            </tr>`;
+          })
+          .join('');
+
+        refreshIcons();
+      };
+
+      // --- FILE OPERATIONS (TEMPLATE, MULTI-JURI, CSV, BACKUP) ---
+      const downloadFile = (content, filename, mimeType) => {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      const exportTemplate = () => {
+        const template = {
+          type: 'juripro_template_v3',
+          compName: state.compName,
+          winnerCount: state.winnerCount,
+          aspects: state.aspects,
+          participants: state.participants.map(({ id, name, subtitle }) => ({ id, name, subtitle: subtitle ?? '' })),
+        };
+        const slug = (state.compName || 'kompetisi').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        downloadFile(JSON.stringify(template, null, 2), `juripro-template-${slug}.json`, 'application/json');
+        showToast('Template lomba berhasil diekspor', 'success');
+      };
+
+      const importTemplate = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        try {
+          const data = JSON.parse(await file.text());
+          if (!['juripro_template_v3', 'juri_template_v2'].includes(data.type) || !Array.isArray(data.aspects)) {
+            throw new Error('File bukan Template JuriPRO yang valid.');
+          }
+          if (!confirm(`Muat template "${data.compName}" (${data.participants.length} peserta)? Data saat ini akan diganti.`)) return;
+
+          state.compName = data.compName || 'Kompetisi';
+          state.winnerCount = Math.max(1, Number.parseInt(data.winnerCount, 10) || 3);
+          state.aspects = data.aspects;
+          state.participants = data.participants.map((p) => ({
+            id: p.id,
+            name: p.name,
+            subtitle: p.subtitle ?? '',
+            scores: {},
+            note: '',
+          }));
+          state.importedJudges = [];
+          saveState();
+          switchTab('setup');
+          showToast('Template dimuat! Isi Nama Juri lalu mulai menilai.', 'success');
+        } catch (err) {
+          showToast(err.message, 'error');
+        } finally {
+          event.target.value = '';
+        }
+      };
+
+      const exportJudgeScores = () => {
+        const judge = state.judgeName.trim() || 'Juri';
+        const scoresByParticipant = {};
+        state.participants.forEach((p) => {
+          scoresByParticipant[p.id] = { scores: p.scores ?? {}, note: p.note ?? '' };
+        });
+        const payload = {
+          type: 'juripro_scores_v3',
+          compName: state.compName,
+          judgeName: judge,
+          exportedAt: new Date().toISOString(),
+          scoresByParticipant,
+        };
+        const slug = judge.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        downloadFile(JSON.stringify(payload, null, 2), `juripro-nilai-${slug}.json`, 'application/json');
+        showToast(`File nilai "${judge}" siap dikirim ke panitia`, 'success');
+      };
+
+      const importOtherJudges = async (event) => {
+        const files = Array.from(event.target.files ?? []);
+        if (!files.length) return;
+
+        let successCount = 0;
+        for (const file of files) {
+          try {
+            const data = JSON.parse(await file.text());
+            if (!['juripro_scores_v3', 'juri_scores_v2'].includes(data.type) || !data.scoresByParticipant) {
+              throw new Error(`"${file.name}" bukan file nilai juri.`);
+            }
+            const existingIdx = state.importedJudges.findIndex(
+              (j) => j.judgeName.toLowerCase() === (data.judgeName ?? '').toLowerCase()
+            );
+            const entry = {
+              id: existingIdx >= 0 ? state.importedJudges[existingIdx].id : uid('j'),
+              judgeName: data.judgeName || file.name.replace('.json', ''),
+              exportedAt: data.exportedAt ?? '',
+              scoresByParticipant: data.scoresByParticipant,
+            };
+            if (existingIdx >= 0) state.importedJudges[existingIdx] = entry;
+            else state.importedJudges.push(entry);
+            successCount++;
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        }
+
+        if (successCount > 0) {
+          saveState();
+          renderRanking();
+          showToast(`${successCount} file nilai juri berhasil digabungkan`, 'success');
+        }
+        event.target.value = '';
+      };
+
+      const exportCSV = () => {
+        const { ranked, activeJudges } = getRankedParticipants();
+        if (!ranked.length) return showToast('Belum ada data peserta untuk diekspor.', 'error');
+
+        const showPerJudge = activeJudges.length > 1;
+        const headers = [
+          'Peringkat',
+          'Status',
+          'Nama Peserta',
+          'Keterangan',
+          ...(showPerJudge
+            ? activeJudges.map((j) => `Skor ${j.judgeName}`)
+            : state.aspects.map((a) => `${a.name} (Bobot ${a.weight})`)),
+          'Skor Akhir',
+          'Tie-Breaker',
+          'Catatan',
+        ];
+
+        const rows = ranked.map((p, i) => {
+          const rank = i + 1;
+          return [
+            rank,
+            rank <= state.winnerCount ? `Juara ${rank}` : 'Peserta',
+            p.name,
+            p.subtitle ?? '',
+            ...(showPerJudge
+              ? activeJudges.map((j) => (p.judgeTotals[j.id] ?? 0).toFixed(2))
+              : state.aspects.map((a) => (p.aspectAverages[a.id] ?? 0).toFixed(2))),
+            p.finalScore.toFixed(2),
+            p.tieBreakReason || '-',
+            p.combinedNotes ?? '',
+          ];
+        });
+
+        const csv = [headers, ...rows]
+          .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
+          .join('\n');
+
+        const slug = (state.compName || 'hasil').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        downloadFile('\uFEFF' + csv, `juripro-klasemen-${slug}.csv`, 'text/csv;charset=utf-8;');
+        showToast('Klasemen berhasil diekspor ke CSV', 'success');
+      };
+
+      const exportBackup = () => {
+        downloadFile(
+          JSON.stringify(state, null, 2),
+          `juripro-backup-${new Date().toISOString().slice(0, 10)}.json`,
+          'application/json'
+        );
+        showToast('Backup penuh berhasil disimpan', 'success');
+      };
+
+      const importBackup = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        try {
+          const parsed = JSON.parse(await file.text());
           if (!Array.isArray(parsed.aspects) || !Array.isArray(parsed.participants)) {
-            throw new Error('Format file tidak valid.');
+            throw new Error('Format file backup tidak valid.');
           }
           state = {
             compName: parsed.compName || 'Kompetisi',
-            winnerCount: Math.max(1, parseInt(parsed.winnerCount) || 3),
+            judgeName: parsed.judgeName || 'Juri 1',
+            winnerCount: Math.max(1, Number.parseInt(parsed.winnerCount, 10) || 3),
+            includeSelfInRanking: parsed.includeSelfInRanking ?? true,
             aspects: parsed.aspects,
-            participants: parsed.participants
+            participants: parsed.participants,
+            importedJudges: Array.isArray(parsed.importedJudges) ? parsed.importedJudges : [],
           };
           saveState();
           switchTab(activeTab);
-          alert('Data backup berhasil dimuat!');
+          showToast('Data backup berhasil dipulihkan', 'success');
         } catch (err) {
-          alert('Gagal memuat file backup: ' + err.message);
+          showToast(err.message, 'error');
+        } finally {
+          event.target.value = '';
         }
       };
-      reader.readAsText(file);
-      event.target.value = '';
-    }
 
-    function resetAllData() {
-      if (!confirm('Yakin ingin menghapus SEMUA data lomba, aspek, dan nilai peserta?')) return;
-      if (!confirm('Tindakan ini tidak bisa dibatalkan. Lanjutkan reset?')) return;
-      localStorage.removeItem(STORAGE_KEY);
-      state = structuredClone(DEFAULT_STATE);
-      saveState();
-      switchTab('setup');
-    }
+      const resetAllData = () => {
+        if (!confirm('Hapus SEMUA data lomba, aspek, nilai peserta, dan juri impor?')) return;
+        if (!confirm('Tindakan ini tidak dapat dibatalkan. Lanjutkan reset?')) return;
+        localStorage.removeItem(STORAGE_KEY);
+        state = structuredClone(DEFAULT_STATE);
+        saveState();
+        switchTab('setup');
+        showToast('Semua data telah direset', 'info');
+      };
 
-    // Inisialisasi awal
-    switchTab('setup');
+      // Init
+      document.addEventListener('DOMContentLoaded', () => switchTab('setup'));
+
+      return {
+        switchTab,
+        updateCompInfo,
+        applyPreset,
+        addAspect,
+        updateAspect,
+        deleteAspect,
+        addParticipant,
+        updateScore,
+        updateNote,
+        deleteParticipant,
+        renderScoring,
+        toggleIncludeSelf,
+        removeImportedJudge,
+        clearImportedJudges,
+        exportTemplate,
+        importTemplate,
+        exportJudgeScores,
+        importOtherJudges,
+        exportCSV,
+        exportBackup,
+        importBackup,
+        resetAllData,
+      };
+    })();
   </script>
 </body>
 </html>
