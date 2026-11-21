@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aplikasi Penjurian Kompetisi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h1 id="headerTitle" class="text-lg sm:text-xl font-bold tracking-tight">Penjurian Kompetisi</h1>
+        <p class="text-xs text-indigo-200 flex items-center gap-1.5">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span id="saveStatus">Tersimpan otomatis di browser</span>
+        </p>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition font-medium" title="Simpan cadangan data (.json)">
+          Backup
+        </button>
+        <label class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition font-medium cursor-pointer" title="Muat cadangan data (.json)">
+          Restore
+          <input type="file" accept=".json" onchange="importBackup(event)" class="hidden" />
+        </label>
+        <button onclick="resetAllData()" class="bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-lg transition font-medium">
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-indigo-800/80 border-t border-indigo-600/50">
+      <div class="max-w-5xl mx-auto px-4 flex gap-1 overflow-x-auto">
+        <button onclick="switchTab('setup')" id="tab-setup" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 transition whitespace-nowrap">
+          1. Pengaturan & Aspek
+        </button>
+        <button onclick="switchTab('scoring')" id="tab-scoring" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 transition whitespace-nowrap">
+          2. Peserta & Penilaian
+        </button>
+        <button onclick="switchTab('ranking')" id="tab-ranking" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 transition whitespace-nowrap">
+          3. Klasemen & Juara
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-5xl w-full mx-auto px-4 py-6 flex-1">
+
+    <!-- TAB 1: PENGATURAN & ASPEK -->
+    <section id="view-setup" class="space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+        <h2 class="text-base font-bold text-slate-800 border-b pb-2">Informasi Kompetisi</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Kompetisi</label>
+            <input type="text" id="compNameInput" oninput="updateCompInfo()" placeholder="Contoh: Dubbing Contest 2026"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Jumlah Juara</label>
+            <input type="number" id="winnerCountInput" min="1" max="50" oninput="updateCompInfo()"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Preset Cepat -->
+        <div class="pt-2">
+          <p class="text-xs font-semibold text-slate-500 mb-2">Gunakan Template Aspek Cepat (opsional):</p>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="applyPreset('dubbing')" class="text-xs bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 border border-slate-200 px-3 py-1.5 rounded-lg transition font-medium">
+              🎙️ Dubbing Contest
+            </button>
+            <button onclick="applyPreset('singing')" class="text-xs bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 border border-slate-200 px-3 py-1.5 rounded-lg transition font-medium">
+              🎤 Singing Contest
+            </button>
+            <button onclick="applyPreset('cosplay')" class="text-xs bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700 border border-slate-200 px-3 py-1.5 rounded-lg transition font-medium">
+              🎭 Cosplay Competition
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aspek Penjurian -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+          <div>
+            <h2 class="text-base font-bold text-slate-800">Aspek Penjurian</h2>
+            <p class="text-xs text-slate-500">Nilai tiap aspek menggunakan skala 0–100. Skor akhir dihitung berdasarkan bobot.</p>
+          </div>
+          <span id="totalWeightBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
+            Total Bobot: 0
+          </span>
+        </div>
+
+        <!-- Form Tambah Aspek -->
+        <form onsubmit="addAspect(event)" class="flex flex-col sm:flex-row gap-2">
+          <input type="text" id="newAspectName" required placeholder="Nama aspek (misal: Penghayatan, Lip Sync, Kostum)"
+            class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          <input type="number" id="newAspectWeight" min="1" max="100" value="25" required title="Bobot penilaian"
+            class="w-full sm:w-28 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Bobot" />
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+            + Tambah Aspek
+          </button>
+        </form>
+
+        <!-- Daftar Aspek -->
+        <div id="aspectList" class="divide-y divide-slate-100"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: PESERTA & PENILAIAN -->
+    <section id="view-scoring" class="hidden space-y-6">
+      <!-- Form Tambah Peserta -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <h2 class="text-base font-bold text-slate-800 mb-3">Tambah Peserta</h2>
+        <form onsubmit="addParticipant(event)" class="flex flex-col sm:flex-row gap-2">
+          <input type="text" id="newParticipantName" required placeholder="Nama peserta / tim"
+            class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          <input type="text" id="newParticipantSub" placeholder="Keterangan (opsional: Karakter / Judul Lagu)"
+            class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap">
+            + Tambah Peserta
+          </button>
+        </form>
+      </div>
+
+      <!-- Filter / Search Peserta -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <input type="text" id="searchParticipant" oninput="renderScoring()" placeholder="Cari nama peserta..."
+          class="w-full sm:w-64 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+        <p id="participantCountLabel" class="text-xs font-medium text-slate-500"></p>
+      </div>
+
+      <!-- Daftar Kartu Penilaian Peserta -->
+      <div id="participantList" class="space-y-4"></div>
+    </section>
+
+    <!-- TAB 3: KLASEMEN & JUARA -->
+    <section id="view-ranking" class="hidden space-y-6">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">Klasemen & Penentuan Juara</h2>
+          <p id="rankingSubtitle" class="text-xs text-slate-500"></p>
+        </div>
+        <button onclick="exportCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">
+          Export ke CSV (Excel)
+        </button>
+      </div>
+
+      <!-- Podium / Highlight Juara -->
+      <div id="winnersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+      <!-- Tabel Lengkap -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead id="rankingTableHead" class="bg-slate-100 text-slate-600 text-xs uppercase"></thead>
+            <tbody id="rankingTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="text-center text-xs text-slate-400 py-4 border-t border-slate-200 bg-white mt-auto">
+    Data tersimpan lokal di perangkat Anda (LocalStorage) &bull; Tidak memerlukan server.
+  </footer>
+
+  <script>
+    const STORAGE_KEY = 'juri_kompetisi_app_v1';
+
+    const DEFAULT_STATE = {
+      compName: 'Kompetisi 2026',
+      winnerCount: 3,
+      aspects: [
+        { id: 'asp_1', name: 'Teknik / Penguasaan', weight: 35 },
+        { id: 'asp_2', name: 'Penghayatan / Ekspresi', weight: 35 },
+        { id: 'asp_3', name: 'Kreativitas & Penampilan', weight: 30 }
+      ],
+      participants: []
+    };
+
+    const PRESETS = {
+      dubbing: {
+        name: 'Dubbing Contest',
+        aspects: [
+          { name: 'Lip Sync & Timing', weight: 25 },
+          { name: 'Akting & Penghayatan Karakter', weight: 35 },
+          { name: 'Artikulasi & Intonasi', weight: 25 },
+          { name: 'Kesesuaian Warna Suara', weight: 15 }
+        ]
+      },
+      singing: {
+        name: 'Singing Contest',
+        aspects: [
+          { name: 'Teknik Vokal & Pitch Control', weight: 35 },
+          { name: 'Penghayatan & Dinamika', weight: 30 },
+          { name: 'Tempo & Harmonisasi', weight: 20 },
+          { name: 'Stage Act & Penampilan', weight: 15 }
+        ]
+      },
+      cosplay: {
+        name: 'Cosplay Competition',
+        aspects: [
+          { name: 'Detail & Kerapian Kostum', weight: 35 },
+          { name: 'Kemiripan Karakter (Makeup/Wig)', weight: 25 },
+          { name: 'In-Character & Pose / Skit', weight: 25 },
+          { name: 'Properti & Kreativitas', weight: 15 }
+        ]
+      }
+    };
+
+    let state = loadState();
+    let activeTab = 'setup';
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(DEFAULT_STATE);
+        const parsed = JSON.parse(raw);
+        return {
+          compName: parsed.compName ?? DEFAULT_STATE.compName,
+          winnerCount: Math.max(1, parseInt(parsed.winnerCount) || 3),
+          aspects: Array.isArray(parsed.aspects) ? parsed.aspects : [],
+          participants: Array.isArray(parsed.participants) ? parsed.participants : []
+        };
+      } catch (e) {
+        console.error('Gagal memuat data:', e);
+        return structuredClone(DEFAULT_STATE);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        const statusEl = document.getElementById('saveStatus');
+        statusEl.textContent = 'Tersimpan • ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch (e) {
+        alert('Gagal menyimpan ke LocalStorage. Pastikan mode private/incognito tidak memblokir penyimpanan.');
+      }
+    }
+
+    function uid(prefix) {
+      return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Kalkulasi Skor Akhir (Weighted Average 0 - 100)
+    function calculateFinalScore(participant) {
+      if (!state.aspects.length) return 0;
+      let totalWeighted = 0;
+      let totalWeight = 0;
+      for (const asp of state.aspects) {
+        const w = Number(asp.weight) || 0;
+        const val = Number(participant.scores?.[asp.id]);
+        const score = isNaN(val) ? 0 : val;
+        totalWeighted += score * w;
+        totalWeight += w;
+      }
+      if (totalWeight === 0) return 0;
+      return totalWeighted / totalWeight;
+    }
+
+    function isFullyScored(participant) {
+      if (!state.aspects.length) return false;
+      return state.aspects.every(asp => {
+        const val = participant.scores?.[asp.id];
+        return val !== undefined && val !== '' && !isNaN(Number(val));
+      });
+    }
+
+    // Navigasi Tab
+    function switchTab(tab) {
+      activeTab = tab;
+      ['setup', 'scoring', 'ranking'].forEach(t => {
+        document.getElementById('view-' + t).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById('tab-' + t);
+        if (t === tab) {
+          btn.classList.add('border-white', 'text-white', 'bg-indigo-700/50');
+          btn.classList.remove('border-transparent', 'text-indigo-200');
+        } else {
+          btn.classList.remove('border-white', 'text-white', 'bg-indigo-700/50');
+          btn.classList.add('border-transparent', 'text-indigo-200');
+        }
+      });
+
+      if (tab === 'setup') renderSetup();
+      if (tab === 'scoring') renderScoring();
+      if (tab === 'ranking') renderRanking();
+    }
+
+    // --- TAB 1: SETUP ---
+    function updateCompInfo() {
+      const nameVal = document.getElementById('compNameInput').value;
+      const winVal = parseInt(document.getElementById('winnerCountInput').value) || 1;
+      state.compName = nameVal;
+      state.winnerCount = Math.max(1, winVal);
+      document.getElementById('headerTitle').textContent = state.compName.trim() || 'Penjurian Kompetisi';
+      saveState();
+    }
+
+    function applyPreset(key) {
+      const preset = PRESETS[key];
+      if (!preset) return;
+      if (state.aspects.length > 0 && !confirm(`Ganti daftar aspek saat ini dengan template "${preset.name}"? (Nilai peserta lama yang aspeknya berubah akan tereset)`)) {
+        return;
+      }
+      state.compName = preset.name;
+      state.aspects = preset.aspects.map(a => ({ id: uid('asp'), name: a.name, weight: a.weight }));
+      saveState();
+      renderSetup();
+    }
+
+    function addAspect(e) {
+      e.preventDefault();
+      const nameInput = document.getElementById('newAspectName');
+      const weightInput = document.getElementById('newAspectWeight');
+      const name = nameInput.value.trim();
+      const weight = Math.max(1, Number(weightInput.value) || 10);
+      if (!name) return;
+
+      state.aspects.push({ id: uid('asp'), name, weight });
+      nameInput.value = '';
+      weightInput.value = '25';
+      saveState();
+      renderSetup();
+    }
+
+    function updateAspect(id, field, value) {
+      const asp = state.aspects.find(a => a.id === id);
+      if (!asp) return;
+      if (field === 'weight') {
+        asp.weight = Math.max(1, Number(value) || 1);
+      } else {
+        asp.name = value;
+      }
+      saveState();
+      updateTotalWeightBadge();
+    }
+
+    function deleteAspect(id) {
+      if (!confirm('Hapus aspek penjurian ini?')) return;
+      state.aspects = state.aspects.filter(a => a.id !== id);
+      state.participants.forEach(p => {
+        if (p.scores) delete p.scores[id];
+      });
+      saveState();
+      renderSetup();
+    }
+
+    function updateTotalWeightBadge() {
+      const total = state.aspects.reduce((sum, a) => sum + (Number(a.weight) || 0), 0);
+      document.getElementById('totalWeightBadge').textContent = `Total Bobot: ${total}`;
+    }
+
+    function renderSetup() {
+      document.getElementById('headerTitle').textContent = state.compName.trim() || 'Penjurian Kompetisi';
+      document.getElementById('compNameInput').value = state.compName;
+      document.getElementById('winnerCountInput').value = state.winnerCount;
+      updateTotalWeightBadge();
+
+      const container = document.getElementById('aspectList');
+      if (!state.aspects.length) {
+        container.innerHTML = `<p class="text-sm text-slate-400 py-4 text-center">Belum ada aspek penjurian. Tambahkan aspek di atas atau pilih template cepat.</p>`;
+        return;
+      }
+
+      container.innerHTML = state.aspects.map((asp, idx) => `
+        <div class="py-3 flex flex-wrap sm:flex-nowrap items-center gap-2">
+          <span class="text-xs font-bold text-slate-400 w-6">${idx + 1}.</span>
+          <input type="text" value="${escapeHtml(asp.name)}"
+            oninput="updateAspect('${asp.id}', 'name', this.value)"
+            class="flex-1 min-w-[160px] px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-slate-500">Bobot:</span>
+            <input type="number" min="1" max="100" value="${asp.weight}"
+              oninput="updateAspect('${asp.id}', 'weight', this.value)"
+              class="w-20 px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-center focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          </div>
+          <button onclick="deleteAspect('${asp.id}')" class="text-rose-500 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition">
+            Hapus
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // --- TAB 2: PESERTA & PENILAIAN ---
+    function addParticipant(e) {
+      e.preventDefault();
+      const nameInput = document.getElementById('newParticipantName');
+      const subInput = document.getElementById('newParticipantSub');
+      const name = nameInput.value.trim();
+      if (!name) return;
+
+      state.participants.push({
+        id: uid('p'),
+        name,
+        subtitle: subInput.value.trim(),
+        scores: {},
+        note: ''
+      });
+      nameInput.value = '';
+      subInput.value = '';
+      saveState();
+      renderScoring();
+    }
+
+    function updateScore(participantId, aspectId, rawValue) {
+      const p = state.participants.find(item => item.id === participantId);
+      if (!p) return;
+      if (!p.scores) p.scores = {};
+
+      if (rawValue === '') {
+        delete p.scores[aspectId];
+      } else {
+        let num = parseFloat(rawValue);
+        if (isNaN(num)) num = 0;
+        if (num < 0) num = 0;
+        if (num > 100) num = 100;
+        p.scores[aspectId] = num;
+      }
+
+      saveState();
+      const finalScore = calculateFinalScore(p);
+      const scoreEl = document.getElementById('total_' + participantId);
+      if (scoreEl) scoreEl.textContent = finalScore.toFixed(2);
+
+      const badgeEl = document.getElementById('status_' + participantId);
+      if (badgeEl) {
+        const done = isFullyScored(p);
+        badgeEl.textContent = done ? 'Lengkap' : 'Belum Lengkap';
+        badgeEl.className = done
+          ? 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700'
+          : 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700';
+      }
+    }
+
+    function updateNote(participantId, value) {
+      const p = state.participants.find(item => item.id === participantId);
+      if (!p) return;
+      p.note = value;
+      saveState();
+    }
+
+    function deleteParticipant(participantId) {
+      const p = state.participants.find(item => item.id === participantId);
+      if (!p) return;
+      if (!confirm(`Hapus peserta "${p.name}" beserta nilainya?`)) return;
+      state.participants = state.participants.filter(item => item.id !== participantId);
+      saveState();
+      renderScoring();
+    }
+
+    function renderScoring() {
+      const query = (document.getElementById('searchParticipant')?.value || '').toLowerCase().trim();
+      const filtered = state.participants.filter(p =>
+        p.name.toLowerCase().includes(query) || (p.subtitle || '').toLowerCase().includes(query)
+      );
+
+      document.getElementById('participantCountLabel').textContent =
+        `Menampilkan ${filtered.length} dari ${state.participants.length} peserta`;
+
+      const container = document.getElementById('participantList');
+
+      if (!state.aspects.length) {
+        container.innerHTML = `
+          <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-4 text-sm">
+            Anda belum menambahkan <strong>Aspek Penjurian</strong>. Silakan atur aspek terlebih dahulu di tab <em>1. Pengaturan & Aspek</em>.
+          </div>`;
+        return;
+      }
+
+      if (!filtered.length) {
+        container.innerHTML = `
+          <div class="bg-white border border-slate-200 rounded-xl p-8 text-center text-sm text-slate-400">
+            ${state.participants.length ? 'Peserta tidak ditemukan.' : 'Belum ada peserta. Tambahkan peserta menggunakan form di atas.'}
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map((p, idx) => {
+        const finalScore = calculateFinalScore(p).toFixed(2);
+        const done = isFullyScored(p);
+        const nomorUrut = state.participants.findIndex(item => item.id === p.id) + 1;
+
+        return `
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 space-y-4">
+            <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">#${nomorUrut}</span>
+                  <h3 class="font-bold text-slate-800 text-base">${escapeHtml(p.name)}</h3>
+                  <span id="status_${p.id}" class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                    ${done ? 'Lengkap' : 'Belum Lengkap'}
+                  </span>
+                </div>
+                ${p.subtitle ? `<p class="text-xs text-slate-500 mt-0.5">${escapeHtml(p.subtitle)}</p>` : ''}
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="text-right">
+                  <span class="block text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Skor Akhir</span>
+                  <span id="total_${p.id}" class="text-xl font-extrabold text-indigo-700">${finalScore}</span>
+                </div>
+                <button onclick="deleteParticipant('${p.id}')" class="text-rose-500 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition">
+                  Hapus
+                </button>
+              </div>
+            </div>
+
+            <!-- Input Skor per Aspek -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              ${state.aspects.map(asp => {
+                const val = p.scores?.[asp.id] ?? '';
+                return `
+                  <div class="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                      <label class="text-xs font-semibold text-slate-700 truncate" title="${escapeHtml(asp.name)}">${escapeHtml(asp.name)}</label>
+                      <span class="text-[11px] text-slate-400 whitespace-nowrap">Bobot ${asp.weight}</span>
+                    </div>
+                    <input type="number" min="0" max="100" step="0.5" placeholder="0 - 100" value="${val}"
+                      oninput="updateScore('${p.id}', '${asp.id}', this.value)"
+                      class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- Catatan Juri -->
+            <div>
+              <input type="text" value="${escapeHtml(p.note || '')}" placeholder="Catatan juri untuk peserta ini (opsional)..."
+                oninput="updateNote('${p.id}', this.value)"
+                class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // --- TAB 3: KLASEMEN & JUARA ---
+    function getRankedParticipants() {
+      return [...state.participants]
+        .map(p => ({ ...p, finalScore: calculateFinalScore(p) }))
+        .sort((a, b) => b.finalScore - a.finalScore);
+    }
+
+    function renderRanking() {
+      const ranked = getRankedParticipants();
+      const winCount = Math.max(1, state.winnerCount);
+
+      document.getElementById('rankingSubtitle').textContent =
+        `${state.compName || 'Kompetisi'} • Menentukan Top ${winCount} Juara dari ${ranked.length} peserta`;
+
+      const winnersGrid = document.getElementById('winnersGrid');
+      const tableHead = document.getElementById('rankingTableHead');
+      const tableBody = document.getElementById('rankingTableBody');
+
+      if (!ranked.length) {
+        winnersGrid.innerHTML = '';
+        tableHead.innerHTML = '';
+        tableBody.innerHTML = `<tr><td class="p-8 text-center text-slate-400">Belum ada data peserta untuk ditampilkan.</td></tr>`;
+        return;
+      }
+
+      // Kartu Pemenang
+      const winners = ranked.slice(0, winCount);
+      winnersGrid.innerHTML = winners.map((p, i) => {
+        const rank = i + 1;
+        let medal = `🏆 Juara ${rank}`;
+        let cardStyle = 'border-indigo-200 bg-indigo-50/40';
+        let badgeStyle = 'bg-indigo-600 text-white';
+
+        if (rank === 1) {
+          medal = '🥇 Juara 1';
+          cardStyle = 'border-amber-300 bg-amber-50/60';
+          badgeStyle = 'bg-amber-500 text-white';
+        } else if (rank === 2) {
+          medal = '🥈 Juara 2';
+          cardStyle = 'border-slate-300 bg-slate-100/70';
+          badgeStyle = 'bg-slate-500 text-white';
+        } else if (rank === 3) {
+          medal = '🥉 Juara 3';
+          cardStyle = 'border-orange-300 bg-orange-50/60';
+          badgeStyle = 'bg-orange-600 text-white';
+        }
+
+        return `
+          <div class="rounded-xl border-2 ${cardStyle} p-4 shadow-sm flex flex-col justify-between gap-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full ${badgeStyle}">${medal}</span>
+              <span class="text-2xl font-extrabold text-slate-800">${p.finalScore.toFixed(2)}</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-base">${escapeHtml(p.name)}</h3>
+              ${p.subtitle ? `<p class="text-xs text-slate-600">${escapeHtml(p.subtitle)}</p>` : ''}
+              ${p.note ? `<p class="text-xs text-slate-500 italic mt-1">"${escapeHtml(p.note)}"</p>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Tabel Klasemen Lengkap
+      tableHead.innerHTML = `
+        <tr>
+          <th class="px-4 py-3">Peringkat</th>
+          <th class="px-4 py-3">Peserta</th>
+          ${state.aspects.map(a => `<th class="px-4 py-3 text-right">${escapeHtml(a.name)} <span class="text-[10px] font-normal">(${a.weight})</span></th>`).join('')}
+          <th class="px-4 py-3 text-right">Skor Akhir</th>
+          <th class="px-4 py-3">Catatan</th>
+        </tr>
+      `;
+
+      tableBody.innerHTML = ranked.map((p, i) => {
+        const rank = i + 1;
+        const isWinner = rank <= winCount;
+        return `
+          <tr class="${isWinner ? 'bg-indigo-50/40 font-medium' : 'hover:bg-slate-50'}">
+            <td class="px-4 py-3 whitespace-nowrap">
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${isWinner ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}">
+                ${rank}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="font-semibold text-slate-800">${escapeHtml(p.name)}</div>
+              ${p.subtitle ? `<div class="text-xs text-slate-500">${escapeHtml(p.subtitle)}</div>` : ''}
+            </td>
+            ${state.aspects.map(a => {
+              const val = p.scores?.[a.id];
+              return `<td class="px-4 py-3 text-right text-slate-600">${val !== undefined ? val : '-'}</td>`;
+            }).join('')}
+            <td class="px-4 py-3 text-right font-extrabold text-indigo-700">${p.finalScore.toFixed(2)}</td>
+            <td class="px-4 py-3 text-xs text-slate-500 max-w-xs truncate" title="${escapeHtml(p.note || '')}">${escapeHtml(p.note || '-')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // --- EXPORT, BACKUP, RESTORE, RESET ---
+    function exportCSV() {
+      const ranked = getRankedParticipants();
+      if (!ranked.length) return alert('Belum ada data peserta untuk diekspor.');
+
+      const headers = ['Peringkat', 'Status', 'Nama Peserta', 'Keterangan', ...state.aspects.map(a => `${a.name} (Bobot ${a.weight})`), 'Skor Akhir', 'Catatan'];
+      const rows = ranked.map((p, i) => {
+        const rank = i + 1;
+        const status = rank <= state.winnerCount ? `Juara ${rank}` : 'Peserta';
+        return [
+          rank,
+          status,
+          p.name,
+          p.subtitle || '',
+          ...state.aspects.map(a => p.scores?.[a.id] ?? 0),
+          p.finalScore.toFixed(2),
+          p.note || ''
+        ];
+      });
+
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const filename = (state.compName || 'hasil-penjurian').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      a.href = url;
+      a.download = `${filename}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportBackup() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-juri-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importBackup(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!Array.isArray(parsed.aspects) || !Array.isArray(parsed.participants)) {
+            throw new Error('Format file tidak valid.');
+          }
+          state = {
+            compName: parsed.compName || 'Kompetisi',
+            winnerCount: Math.max(1, parseInt(parsed.winnerCount) || 3),
+            aspects: parsed.aspects,
+            participants: parsed.participants
+          };
+          saveState();
+          switchTab(activeTab);
+          alert('Data backup berhasil dimuat!');
+        } catch (err) {
+          alert('Gagal memuat file backup: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function resetAllData() {
+      if (!confirm('Yakin ingin menghapus SEMUA data lomba, aspek, dan nilai peserta?')) return;
+      if (!confirm('Tindakan ini tidak bisa dibatalkan. Lanjutkan reset?')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      state = structuredClone(DEFAULT_STATE);
+      saveState();
+      switchTab('setup');
+    }
+
+    // Inisialisasi awal
+    switchTab('setup');
+  </script>
+</body>
+</html>
